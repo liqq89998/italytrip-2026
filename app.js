@@ -344,16 +344,143 @@
   }
 
   /* ---------- viewer ---------- */
+  var PDF_STATE = null; // {pdf, strip, canvases, gscale, gtx, gty, pinching, pinch}
+
   function openViewer(file) {
     viewerTitle.textContent = file;
     if (/\.(png|jpe?g)$/i.test(file)) {
       viewerBody.innerHTML = '<div class="img-wrap"><img src="tickets/' + encodeURIComponent(file) + '" alt=""></div>';
+      document.getElementById('pdfFoot').classList.add('hidden');
     } else {
-      viewerBody.innerHTML = '<iframe src="tickets/' + encodeURIComponent(file) + '#view=FitH" title="PDF"></iframe>';
+      renderPdfViewer(file);
     }
     viewer.classList.remove('hidden');
   }
-  function closeViewer() { viewer.classList.add('hidden'); viewerBody.innerHTML = ''; }
+
+  function renderPdfViewer(file) {
+    var foot = document.getElementById('pdfFoot');
+    viewerBody.innerHTML = '<div class="pdf-strip" id="pdfStrip"><div class="pdf-loading">正在渲染票券…</div></div>';
+    foot.classList.remove('hidden');
+    foot.textContent = '加载中…';
+    PDF_STATE = null;
+    if (!window.pdfjsLib) {
+      viewerBody.innerHTML = '<div class="pdf-loading">PDF 组件加载失败，请检查网络后重试</div>';
+      return;
+    }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+    var loadDoc = function () {
+      pdfjsLib.getDocument('tickets/' + encodeURIComponent(file)).promise.then(function (pdf) {
+        var strip = document.getElementById('pdfStrip');
+        if (!strip) return;
+        strip.innerHTML = '';
+        var canvases = [];
+        var i = 0;
+        function renderOne() {
+          if (i >= pdf.numPages) {
+            if (canvases.length) { foot.textContent = '第 1 / ' + canvases.length + ' 页 · 单指左右滑动翻页 · 双指放大缩小'; }
+            setupPdfGestures(strip, canvases, foot);
+            return;
+          }
+          var n = i + 1;
+          pdf.getPage(n).then(function (page) {
+            var vp = page.getViewport({ scale: 2 });
+            var wrap = document.createElement('div');
+            wrap.className = 'pdf-page';
+            var canvas = document.createElement('canvas');
+            canvas.width = vp.width;
+            canvas.height = vp.height;
+            wrap.appendChild(canvas);
+            strip.appendChild(wrap);
+            canvases.push(canvas);
+            page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise.then(function () {
+              i++;
+              renderOne();
+            }).catch(function () { i++; renderOne(); });
+          }).catch(function () { i++; renderOne(); });
+        }
+        renderOne();
+      }).catch(function (e) {
+        viewerBody.innerHTML = '<div class="pdf-loading">无法解析这份票券</div>';
+        foot.textContent = '加载失败（' + (e && e.message ? e.message : e) + '）';
+      });
+    };
+    // load worker via Blob URL: most reliable across Safari / WebViews
+    fetch('vendor/pdf.worker.min.js').then(function (r) { return r.text(); }).then(function (txt) {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([txt], { type: 'text/javascript' }));
+      } catch (e) { /* fall back to plain workerSrc */ }
+      loadDoc();
+    }).catch(function () {
+      loadDoc();
+    });
+  }
+
+  function setupPdfGestures(strip, canvases, foot) {
+    var st = { gscale: 1, gtx: 0, gty: 0, pinching: null, pinch: null, pan: null };
+    PDF_STATE = st;
+
+    function apply() {
+      canvases.forEach(function (c) {
+        c.style.transform = 'translate(' + st.gtx + 'px,' + st.gty + 'px) scale(' + st.gscale + ')';
+      });
+      strip.classList.toggle('zoomed', st.gscale > 1.02);
+    }
+    function dist(t) { var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.sqrt(dx * dx + dy * dy); }
+    function mid(t) { return { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 }; }
+
+    strip.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 2) {
+        st.pinching = true;
+        st.pinch = { d0: dist(e.touches), x0: mid(e.touches).x, y0: mid(e.touches).y, sx: st.gtx, sy: st.gty, s0: st.gscale };
+      } else if (e.touches.length === 1 && st.gscale > 1.02) {
+        st.pan = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, sx: st.gtx, sy: st.gty };
+      }
+    }, { passive: true });
+
+    strip.addEventListener('touchmove', function (e) {
+      if (st.pinching && e.touches.length >= 2) {
+        e.preventDefault();
+        var d = dist(e.touches), m = mid(e.touches);
+        st.gscale = Math.min(5, Math.max(1, st.pinch.s0 * d / st.pinch.d0));
+        if (st.gscale <= 1.02) { st.gtx = 0; st.gty = 0; }
+        else {
+          st.gtx = st.pinch.sx + (m.x - st.pinch.x0);
+          st.gty = st.pinch.sy + (m.y - st.pinch.y0);
+        }
+        apply();
+      } else if (st.pan && e.touches.length === 1 && st.gscale > 1.02) {
+        e.preventDefault();
+        st.gtx = st.pan.sx + (e.touches[0].clientX - st.pan.x0);
+        st.gty = st.pan.sy + (e.touches[0].clientY - st.pan.y0);
+        apply();
+      }
+    }, { passive: false });
+
+    function endTouch() {
+      st.pinching = false;
+      st.pan = null;
+      if (st.gscale <= 1.02) { st.gscale = 1; st.gtx = 0; st.gty = 0; apply(); }
+      else { st.gtx = Math.max(-1000, Math.min(1000, st.gtx)); st.gty = Math.max(-2000, Math.min(2000, st.gty)); }
+    }
+    strip.addEventListener('touchend', endTouch, { passive: true });
+    strip.addEventListener('touchcancel', endTouch, { passive: true });
+
+    // page indicator
+    strip.addEventListener('scroll', function () {
+      var idx = Math.round(strip.scrollLeft / strip.clientWidth);
+      if (foot) foot.textContent = '第 ' + (idx + 1) + ' / ' + canvases.length + ' 页 · 单指左右滑动翻页 · 双指放大缩小';
+    }, { passive: true });
+
+    PDF_STATE = st;
+    apply();
+  }
+
+  function closeViewer() {
+    viewer.classList.add('hidden');
+    viewerBody.innerHTML = '';
+    document.getElementById('pdfFoot').classList.add('hidden');
+    PDF_STATE = null;
+  }
 
   /* ---------- modals ---------- */
   function modal(html) {

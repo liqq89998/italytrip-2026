@@ -1,5 +1,5 @@
 /* ItalyTrip PWA service worker: cache-first, fully offline after first visit. */
-const CACHE = 'italytrip-v1';
+const CACHE = 'italytrip-v2';
 const CORE = [
   './',
   './index.html',
@@ -8,6 +8,8 @@ const CORE = [
   './manifest.webmanifest',
   './trip.js',
   './trip.json',
+  './vendor/pdf.min.js',
+  './vendor/pdf.worker.min.js',
   './icons/icon-192.png',
   './icons/apple-touch-icon.png',
   './tickets/vatican_2026-09-26_0830.pdf',

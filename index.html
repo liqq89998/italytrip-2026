@@ -14,15 +14,17 @@
 <body>
 <main id="app"></main>
 
-<!-- PDF viewer overlay (iOS native viewer inside an iframe) -->
+<!-- PDF viewer overlay -->
 <div id="viewer" class="viewer hidden">
   <div class="viewer-top">
     <button class="icon-btn" id="viewerBack" aria-label="返回">‹</button>
     <div id="viewerTitle" class="viewer-title"></div>
   </div>
   <div id="viewerBody" class="viewer-body"></div>
+  <div id="pdfFoot" class="pdf-foot hidden"></div>
 </div>
 
+<script src="vendor/pdf.min.js"></script>
 <script src="trip.js"></script>
 <script src="app.js"></script>
 </body>
