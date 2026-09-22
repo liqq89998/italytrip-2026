@@ -629,6 +629,30 @@
     APP.innerHTML = '<div class="app-shell"><div class="screen"><div class="card"><div class="center">😥<br>行程数据加载失败，请确认文件完整后用浏览器打开。</div></div></div></div>';
   }
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(function () {});
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      try { reg.update(); } catch (e) {}
+    }).catch(function () {});
+    // when an updated worker takes control, reload once so the new version shows up
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (sessionStorage.getItem('it_reloaded_once')) return;
+      sessionStorage.setItem('it_reloaded_once', '1');
+      location.reload();
+    });
   }
+  // version self-check: if the deployed version is newer than the one this page
+  // was loaded with, refresh once (guards against a stale service-worker cache)
+  try {
+    fetch('version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
+      var cur = String((v && v.v) || '');
+      if (!cur) return;
+      var seen = localStorage.getItem('it_page_version') || '';
+      if (seen !== cur) {
+        localStorage.setItem('it_page_version', cur);
+        if (seen && !sessionStorage.getItem('it_reloaded_once')) {
+          sessionStorage.setItem('it_reloaded_once', '1');
+          location.reload();
+        }
+      }
+    }).catch(function () {});
+  } catch (e) {}
 })();

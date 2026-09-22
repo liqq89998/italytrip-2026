@@ -1,12 +1,19 @@
-/* ItalyTrip PWA service worker: cache-first, fully offline after first visit. */
-const CACHE = 'italytrip-v4';
+/* ItalyTrip PWA service worker.
+ * Strategy:
+ *  - HTML / JS / CSS / JSON (app shell & data): NETWORK FIRST, cache fallback
+ *    -> an updated site is picked up on the very next open, offline still works;
+ *  - tickets / icons / vendor (PDF.js): CACHE FIRST (big, rarely changed).
+ */
+const CACHE = 'italytrip-v5';
+const V = '?v=5';
 const CORE = [
   './',
   './index.html',
-  './app.css',
-  './app.js',
+  './app.css' + V,
+  './app.js' + V,
   './manifest.webmanifest',
-  './trip.js',
+  './version.json',
+  './trip.js' + V,
   './trip.json',
   './vendor/pdf.min.js',
   './vendor/pdf.worker.min.js',
@@ -27,8 +34,7 @@ const CORE = [
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE).then((cache) =>
-      // addAll fails hard on any 404; add one by one so a missing file never
-      // breaks the whole install
+      // add one by one: a single missing file must never break the install
       Promise.all(CORE.map((u) => cache.add(u).catch(() => null)))
     ).then(() => self.skipWaiting())
   );
@@ -39,22 +45,53 @@ self.addEventListener('activate', (e) => {
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
+      // force already-open pages to reload so a fresh version is visible at once
+      .then(() => self.clients.matchAll({ type: 'window' }))
+      .then((clients) => Promise.all(clients.map((c) => {
+        try { return c.navigate(c.url) || null; } catch (err) { return null; }
+      })))
+      .catch(() => null)
   );
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== location.origin) return;
+
+  // never cache the version probe: it must always hit the network
+  if (url.pathname.endsWith('version.json')) return;
+
+  const isBigAsset = /\/(tickets|icons|vendor)\//.test(url.pathname);
+
+  if (isBigAsset) {
+    // cache first: fast + offline safe
+    e.respondWith(
+      caches.match(req).then((hit) =>
+        hit ||
+        fetch(req).then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, clone)).catch(() => null);
+          }
+          return res;
+        }).catch(() => caches.match('./index.html'))
+      )
+    );
+    return;
+  }
+
+  // app shell & data: network first, fall back to cache when offline
   e.respondWith(
-    caches.match(e.request).then((hit) =>
-      hit ||
-      fetch(e.request).then((res) => {
-        // keep successful same-origin responses in cache for next time
-        if (res.ok && new URL(e.request.url).origin === location.origin) {
-          const clone = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, clone)).catch(() => null);
-        }
-        return res;
-      }).catch(() => caches.match('./index.html'))
+    fetch(req).then((res) => {
+      if (res.ok) {
+        const clone = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, clone)).catch(() => null);
+      }
+      return res;
+    }).catch(() =>
+      caches.match(req).then((hit) => hit || caches.match('./index.html'))
     )
   );
 });
