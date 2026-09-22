@@ -1,5 +1,5 @@
 /* ItalyTrip PWA service worker: cache-first, fully offline after first visit. */
-const CACHE = 'italytrip-v2';
+const CACHE = 'italytrip-v3';
 const CORE = [
   './',
   './index.html',
@@ -19,6 +19,8 @@ const CORE = [
   './tickets/train_salerno_firenze_2026-09-30_0923.pdf',
   './tickets/uffizi_2026-10-01_0900.pdf',
   './tickets/train_firenze_milano_2026-10-03_0955.pdf',
+  './tickets/accademia_bargello_2026-09-30_1545.pdf',
+  './tickets/verrazzano_2026-10-02_1000.pdf',
   './tickets/verrazzano_booking.png',
 ];
 

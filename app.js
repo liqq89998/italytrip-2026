@@ -65,7 +65,8 @@
   function ticketMeta(kind) {
     if (kind === 'train') return { tile: '🚄', cls: 'train' };
     if (kind === 'arena') return { tile: '🏛️', cls: 'arena' };
-    if (kind === 'image') return { tile: '🍷', cls: 'image' };
+    if (kind === 'image') return { tile: '🖼️', cls: 'image' };
+    if (kind === 'wine') return { tile: '🍷', cls: 'image' };
     return { tile: '🖼️', cls: 'museum' };
   }
   function intensityPill(level, text) {

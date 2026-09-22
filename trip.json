@@ -63,7 +63,7 @@
         { "time": "11:30–14:30", "event": "午饭、咖啡、短暂休息；不要再塞圣天使城堡入内。" },
         { "time": "15:30", "event": "抵达博尔盖塞美术馆附近，预留找入口时间。" },
         { "time": "16:00–18:00", "event": "博尔盖塞美术馆：重点看贝尼尼、卡拉瓦乔及博尔盖塞收藏。" },
-        { "time": "晚上", "event": "轻松晚餐，尽量早点休息。" }
+        { "time": "19:00", "event": "晚餐（已预订）：Cuoco & Camicia｜9/26 19:00 已订位，建议提前 10 分钟到店；饭后早点回住宿休息。" }
       ]
     },
     {
@@ -144,7 +144,8 @@
       "intensity": "mid", "intensityText": "低中强度",
       "pack": ["手机", "舒适鞋", "相机", "轻外套", "充电宝", "水"],
       "tickets": [
-        { "kind": "train", "file": "train_salerno_firenze_2026-09-30_0923.pdf", "title": "火车票｜Salerno → Firenze S.M. Novella｜09:23–12:46", "note": "Frecciarossa 9514｜PNR M28TTN｜Premium" }
+        { "kind": "train", "file": "train_salerno_firenze_2026-09-30_0923.pdf", "title": "火车票｜Salerno → Firenze S.M. Novella｜09:23–12:46", "note": "Frecciarossa 9514｜PNR M28TTN｜Premium" },
+        { "kind": "museum", "file": "accademia_bargello_2026-09-30_1545.pdf", "title": "学院美术馆 + 巴杰罗 48h 联票｜15:45 入场", "note": "Galleria dell'Accademia 15:45–16:00 入场；巴杰罗博物馆可同日起 48 小时内参观｜订单 24191418" }
       ],
       "transport": [
         { "label": "火车", "detail": "Salerno → Firenze S.M. Novella｜09:23–12:46", "tip": "到达后前往老桥附近住宿，可打车或步行。" },
@@ -188,7 +189,8 @@
       "intensity": "high", "intensityText": "高强度",
       "pack": ["手机", "现金/信用卡", "墨镜", "轻外套", "水", "晕车药", "相机", "充电宝"],
       "tickets": [
-        { "kind": "image", "file": "verrazzano_booking.png", "title": "Castello di Verrazzano 酒庄凭证｜Classic Wine Tour", "note": "10/2 10:00 集合｜3成人 英语导览｜预订码与取消规则见图片，可离线查看" }
+        { "kind": "wine", "file": "verrazzano_2026-10-02_1000.pdf", "title": "Verrazzano 酒庄 Classic Wine Tour｜10:00｜3人", "note": "预订码 QG3EZ｜英语导览 3 adulti｜10/2 10:00 出发，请提前几分钟到前台报到" },
+        { "kind": "image", "file": "verrazzano_booking.png", "title": "Verrazzano 酒庄凭证（截图版）｜Classic Wine Tour", "note": "10/2 10:00 集合｜3成人 英语导览｜预订码与取消规则见图片，可离线查看" }
       ],
       "transport": [
         { "label": "集合", "detail": "Firenze S.M. Novella 火车站集合上车", "tip": "建议从住宿打车到集合点，避免迟到。" },
