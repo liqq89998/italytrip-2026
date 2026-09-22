@@ -316,7 +316,9 @@
       '<button class="tab" data-act="tab" data-tab="tickets"><span class="ico">🎫</span>票券</button>' +
       '<button class="tab" data-act="tab" data-tab="outing"><span class="ico">✅</span>出门</button>' +
       '</nav>';
-    document.getElementById('view').innerHTML =
+    var view = document.getElementById('view');
+    view.className = 'screen' + (tab === 'trips' ? ' screen-trips' : '');
+    view.innerHTML =
       tab === 'home' ? homeView() : tab === 'trips' ? tripsView() : tab === 'tickets' ? ticketsView() : outingView();
     document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
     var q = document.getElementById('hsearch');
@@ -324,24 +326,47 @@
       q.addEventListener('input', function () { searchQuery = q.value; document.getElementById('homeBody').innerHTML = homeBody(); syncClear(); });
     }
     syncClear();
-    if (tab === 'trips') scrollDay(tripsDay, false);
+    if (tab === 'trips') {
+      // wait one frame so the flex pager has its real width before positioning
+      requestAnimationFrame(function () {
+        scrollDay(tripsDay, false);
+        var vp = document.getElementById('dayviewport');
+        if (vp) {
+          vp.addEventListener('scroll', function () {
+            var idx = Math.round(vp.scrollLeft / Math.max(1, vp.clientWidth));
+            if (idx !== tripsDay && idx >= 0 && idx < TRIP.days.length) {
+              tripsDay = idx;
+              updateTripsHeader(idx);
+            }
+          }, { passive: true });
+        }
+      });
+    }
   }
   function syncClear() {
     var c = document.getElementById('hclear');
     if (c) { c.classList.toggle('hidden', !searchQuery); }
   }
-  function scrollDay(idx, smooth) {
-    var vp = document.getElementById('dayviewport');
-    tripsDay = idx;
-    if (vp) {
-      vp.scrollTo({ left: vp.clientWidth * idx, behavior: smooth ? 'smooth' : 'auto' });
-    }
+  function updateTripsHeader(idx) {
     var tabs = document.querySelectorAll('.day-tab');
     tabs.forEach(function (b, i) { b.classList.toggle('active', i === idx); });
+    if (tabs[idx] && tabs[idx].scrollIntoView) {
+      try { tabs[idx].scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); } catch (e) {}
+    }
     var head = document.querySelector('.trips-head .t1');
     if (head) head.textContent = '行程计划 · DAY ' + (idx + 1) + ' / ' + TRIP.days.length;
     var head2 = document.querySelector('.trips-head .t2');
     if (head2) head2.textContent = TRIP.days[idx].dateCn + ' · ' + TRIP.days[idx].route;
+  }
+  function scrollDay(idx, smooth) {
+    tripsDay = idx;
+    var vp = document.getElementById('dayviewport');
+    if (vp) {
+      var left = vp.clientWidth * idx;
+      if (smooth) vp.scrollTo({ left: left, behavior: 'smooth' });
+      else vp.scrollLeft = left;
+    }
+    updateTripsHeader(idx);
   }
 
   /* ---------- viewer ---------- */

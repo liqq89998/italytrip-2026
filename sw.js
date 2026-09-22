@@ -1,5 +1,5 @@
 /* ItalyTrip PWA service worker: cache-first, fully offline after first visit. */
-const CACHE = 'italytrip-v3';
+const CACHE = 'italytrip-v4';
 const CORE = [
   './',
   './index.html',
